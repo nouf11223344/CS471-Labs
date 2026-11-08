@@ -12,28 +12,28 @@ a:visited {
     color: purple;
 }
 
-a:hover {
-    color: blue;
-}
-
-a:active {
-    color: green;
-}
-
-a.link1,
 a.link1:visited {
     background-color: lightgreen;
     color: red;
 }
 
-a.link2,
-a.link2:visited {
+a.link2 {
     background-color: #555555;
     color: yellow;
 }
 
-a#link3,
-a#link3:visited {
+a#link3 {
     background-color: black;
     color: white;
+}
+
+a.link1:hover {
+    color: blue;
+}
+
+a:active,
+a.link1:active,
+a.link2:active,
+a#link3:active {
+    color: green;
 }

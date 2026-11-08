@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lab 8 - Task 7</title>
+</head>
+<body>
+
+    <h1>Number of Students in Each City</h1>
+
+    <table border="1">
+        <tr>
+            <th>City</th>
+            <th>Number of Students</th>
+        </tr>
+
+        {% for city in cities %}
+        <tr>
+            <td>{{ city.city }}</td>
+            <td>{{ city.student_count }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+</body>
+</html>
