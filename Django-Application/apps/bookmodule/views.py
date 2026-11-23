@@ -5,6 +5,14 @@ from django.db.models import Q
 from django.db.models import Count, Sum, Avg, Max, Min
 from .models import Book, Address, Student
 from django.db.models import Count
+from django.db.models import F, FloatField, ExpressionWrapper, Sum
+from apps.bookmodule.models import Lab9Book
+from apps.bookmodule.models import Publisher
+from django.db.models import Sum
+from django.db.models import OuterRef, Subquery
+
+
+
 
 def index(request):
     name = request.GET.get("name") or "world!"
@@ -207,3 +215,164 @@ def lab8_task7(request):
         'bookmodule/lab8_task7.html',
         {'cities': cities}
     )
+ 
+
+def lab9_task1(request):
+    total_quantity = (
+        Lab9Book.objects.aggregate(total=Sum("quantity"))["total"] or 0
+    )
+
+    if total_quantity == 0:
+        return HttpResponse("No books available.")
+
+    books = Lab9Book.objects.annotate(
+        availability_percentage=ExpressionWrapper(
+            F("quantity") * 100.0 / total_quantity,
+            output_field=FloatField()
+        )
+    )
+
+    result = "<h1>Lab 9 - Task 1</h1>"
+    result += "<h2>Book Availability Percentage</h2>"
+
+    for book in books:
+        result += (
+            f"<p>{book.title} - "
+            f"Quantity: {book.quantity} - "
+            f"Availability: {book.availability_percentage:.2f}%</p>"
+        )
+
+    return HttpResponse(result)
+
+
+
+
+def lab9_task2(request):
+    publishers = Publisher.objects.annotate(
+        total_stock=Sum("lab9book__quantity")
+    )
+
+    result = "<h1>Lab 9 - Task 2</h1>"
+    result += "<h2>Publishers and Total Book Stock</h2>"
+
+    for publisher in publishers:
+        total = publisher.total_stock or 0
+
+        result += (
+            f"<p>Publisher: {publisher.name} - "
+            f"Total Stock: {total}</p>"
+        )
+
+    return HttpResponse(result)
+
+
+
+def lab9_task3(request):
+    oldest_book = Lab9Book.objects.filter(
+        publisher=OuterRef("pk")
+    ).order_by("pubdate")
+
+    publishers = Publisher.objects.annotate(
+        oldest_book_title=Subquery(
+            oldest_book.values("title")[:1]
+        ),
+        oldest_book_date=Subquery(
+            oldest_book.values("pubdate")[:1]
+        )
+    )
+
+    result = "<h1>Lab 9 - Task 3</h1>"
+    result += "<h2>Oldest Book for Each Publisher</h2>"
+
+    for publisher in publishers:
+        title = publisher.oldest_book_title or "No books"
+        date = publisher.oldest_book_date
+
+        result += (
+            f"<p>Publisher: {publisher.name} - "
+            f"Oldest Book: {title} - "
+            f"Publication Date: {date}</p>"
+        )
+
+    return HttpResponse(result)
+
+
+def lab9_task4(request):
+    publishers = Publisher.objects.annotate(
+        avg_price=Avg("lab9book__price"),
+        min_price=Min("lab9book__price"),
+        max_price=Max("lab9book__price")
+    )
+
+    result = "<h1>Lab 9 - Task 4</h1>"
+    result += "<h2>Book Price Statistics for Each Publisher</h2>"
+
+    for publisher in publishers:
+        if publisher.avg_price is not None:
+            result += (
+                f"<p>Publisher: {publisher.name} - "
+                f"Average Price: {publisher.avg_price:.2f} - "
+                f"Minimum Price: {publisher.min_price:.2f} - "
+                f"Maximum Price: {publisher.max_price:.2f}</p>"
+            )
+        else:
+            result += f"<p>Publisher: {publisher.name} - No books</p>"
+
+    return HttpResponse(result)
+
+
+def lab9_task5(request):
+    publishers = Publisher.objects.annotate(
+        highly_rated_count=Count(
+            "lab9book",
+            filter=Q(lab9book__rating__gte=4)
+        )
+    )
+
+    result = "<h1>Lab 9 - Task 5</h1>"
+    result += "<h2>Highly Rated Books for Each Publisher</h2>"
+
+    for publisher in publishers:
+        result += (
+            f"<h3>Publisher: {publisher.name}</h3>"
+            f"<p>Highly Rated Books Count: "
+            f"{publisher.highly_rated_count}</p>"
+        )
+
+        books = Lab9Book.objects.filter(
+            publisher=publisher,
+            rating__gte=4
+        )
+
+        for book in books:
+            result += (
+                f"<p>Book: {book.title} - "
+                f"Quantity: {book.quantity} - "
+                f"Rating: {book.rating}</p>"
+            )
+
+    return HttpResponse(result)
+    
+
+def lab9_task6(request):
+    publishers = Publisher.objects.annotate(
+        matching_books_count=Count(
+            "lab9book",
+            filter=Q(
+                lab9book__price__gt=50,
+                lab9book__quantity__range=(1, 4)
+            )
+        )
+    )
+
+    result = "<h1>Lab 9 - Task 6</h1>"
+    result += "<h2>Books with Price > 50 and Quantity Between 1 and 4</h2>"
+
+    for publisher in publishers:
+        result += (
+            f"<p>Publisher: {publisher.name} - "
+            f"Matching Books Count: "
+            f"{publisher.matching_books_count}</p>"
+        )
+
+    return HttpResponse(result)
